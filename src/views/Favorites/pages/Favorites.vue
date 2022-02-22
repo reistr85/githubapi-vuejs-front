@@ -1,11 +1,10 @@
 <template>
-  <v-card elevation="2" max-width="1000" class="mx-auto my-12 cardRepositories">
-    <v-card-title>
-      Repositórios Favoritos
-    </v-card-title>
-    <v-divider></v-divider>
-    
-    <v-card-content>
+  <Card class="mx-auto my-12">
+    <template v-slot:title>
+      Repositórios Favoritos <v-progress-circular v-if="loadingBtnUnFavorite" class="ml-5" indeterminate color="primary" />
+    </template>
+
+    <template v-slot:content>
       <v-list two-line>
         <v-list-item v-for="repository in repositories" :key="repository.id">
         <v-list-item-content class="d-flex list-item-content">
@@ -20,7 +19,7 @@
             <v-chip class="mt-3" size="x-small" color="primary">{{ repository.stargazers_count }} <v-icon>mdi-star</v-icon></v-chip>
             
             <br>
-            <v-btn color="secondary" rounded="lg" size="small" class="mt-5" :loading="loading" @click="destroyRepository(repository.id)">
+            <v-btn color="secondary" rounded="lg" size="small" class="mt-5" @click="destroyRepository(repository.id)">
               <v-icon>mdi-star</v-icon>
               Desfavoritar
             </v-btn>
@@ -29,30 +28,41 @@
           </v-list-item-content>
         </v-list-item>
       </v-list>
-    </v-card-content>
-  </v-card>
+    </template>
+  </Card>
 </template>
 
 <script>
 import axios from '../../../service/index.js';
-  export default {
-    data: () => ({
-      repositories: [],
-    }),
-    mounted() {
-      this.getRepositories();
-    },
-    methods: {
-      async getRepositories() {
-        const res = await axios.get('/repositories');
+import Card from '@/components/Card';
+
+export default {
+  name: 'Favorites',
+  components: { Card },
+  data: () => ({
+    repositories: [],
+    loadingBtnUnFavorite: false,
+  }),
+  mounted() {
+    this.getRepositories();
+  },
+  methods: {
+    getRepositories() {
+      axios.get('/repositories').then((res) => {
         this.repositories = res.data;
-      },
-      async destroyRepository(id) {
-        await axios.delete(`/repositories/${id}`);
+      }).catch(() => {
+      });
+    },
+    destroyRepository(id) {
+      this.loadingBtnUnFavorite = true;
+      axios.delete(`/repositories/${id}`).then(() => {
         this.getRepositories();
-      },
-    }
+      }).finally(() => {
+        this.loadingBtnUnFavorite = false;
+      });
+    },
   }
+}
 </script>
 
 <style scoped>
