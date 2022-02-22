@@ -2,78 +2,86 @@
   <v-alert type="success" v-if="success">Repositório favoritado com sucesso.</v-alert>
   <v-alert type="error" v-if="error">{{ errorMessage }}</v-alert>
   
-  <v-card elevation="2" max-width="1000" class="mx-auto my-12">
-    <v-card-title>
+  <Card class="mx-auto my-12">
+    <template v-slot:title>
       Pesquisar Repositório no GitHub
-    </v-card-title>
-    <v-divider></v-divider>
+    </template>
 
-    <v-card-content>
+    <template v-slot:content>
       <v-text-field v-model="search" label="Digite nome do repositório Git" placeholder="digite o nome"  outlined dense></v-text-field>
-    </v-card-content>
+    </template>
 
-    <v-divider></v-divider>
-    <v-card-actions>
-      <v-btn color="primary" rounded="lg" :loading="loading" @click="actionSearch()">
-        <v-icon>mdi-check-circle</v-icon>
-        Pesquisar
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+    <template v-slot:actions>
+      <v-btn color="primary" rounded="lg" :loading="loading" @click="actionSearch()"><v-icon>mdi-check-circle</v-icon>Pesquisar</v-btn>
+      <v-progress-circular v-if="loadingBtnSearch" class="ml-5" indeterminate color="primary" />
+    </template>
+  </Card>
 
-  <v-card max-width="1000" class="mx-auto" v-if="displayCard">
-    <v-list three-line>
-      <v-card-title>{{ repository.full_name }}</v-card-title>
-      <v-divider></v-divider>
+  <Card class="mx-auto my-12" v-if="displayCard">
+    <template v-slot:title>
+      {{ repository.full_name }}
+    </template>
 
-        <v-card-content>
-          <v-list-item>
-            <v-img max-width="80" :src="repository.organization?.avatar_url" class="mr-5"></v-img>
+    <template v-slot:content>
+      <v-list-item>
+        <v-img max-width="80" :src="repository.organization?.avatar_url" class="mr-5"></v-img>
 
-            <v-list-item-content>
-              <v-list-item-title>{{ repository.description }}</v-list-item-title>
-              <v-list-item-subtitle>{{ repository.html_url }}</v-list-item-subtitle>
-              <v-chip class="mt-3" size="x-small"  color="primary">{{ repository.stargazers_count }} <v-icon>mdi-star</v-icon></v-chip>
-            </v-list-item-content>
-          </v-list-item>
-        </v-card-content>
+        <v-list-item-content>
+          <v-list-item-title>{{ repository.description }}</v-list-item-title>
+          <v-list-item-subtitle>{{ repository.html_url }}</v-list-item-subtitle>
+          <v-chip class="mt-3" size="x-small"  color="primary">{{ repository.stargazers_count }} <v-icon>mdi-star</v-icon></v-chip>
+        </v-list-item-content>
+      </v-list-item>
+    </template>
 
-        <v-divider></v-divider>
-        <v-card-actions>
-          <v-btn color="secondary" rounded="lg" :loading="loading" @click="actionFavorite()">
-            <v-icon>mdi-star</v-icon>
-            Favoritar
-          </v-btn>
-        </v-card-actions>
-    </v-list>
-  </v-card>
+    <template v-slot:actions>
+      <v-btn color="secondary" rounded="lg" :loading="loading" @click="actionFavorite()"><v-icon>mdi-star</v-icon>Favoritar</v-btn>
+      <v-progress-circular v-if="loadingBtnFavorite" class="ml-5" indeterminate color="primary" />
+    </template>
+  </Card>
 </template>
 
 <script>
 import axios from '../../../service/index.js';
+import Card from '@/components/Card';
 
 export default {
   name: 'SearchRepository',
+  components: { Card },
   data() {
     return {
-      search: 'vuejs/vue',
+      search: '',
       repository: {},
       loader: false,
       displayCard: false,
       success: false,
       error: false,
       errorMessage: '',
+      loadingBtnSearch: false,
+      loadingBtnFavorite: false,
     }
   },
   methods: {
-    async actionSearch() {
-      const res = await axios.post('/github/get-repository-by-name', { name: this.search });
-      this.repository = res.data;
-      this.displayCard = true;
-      this.success = false;
-      this.error = false;
+    actionSearch() {
+      if(this.search === '') {
+        this.errorMessage = 'Digite o nome do repositório';
+        this.error = true;
+      }
+      this.loadingBtnSearch = true;
+      axios.post('/github/get-repository-by-name', { name: this.search }).then((res) => {
+        this.repository = res.data;
+        this.displayCard = true;
+        this.success = false;
+        this.error = false;
+      }).catch(() => {
+      }).finally(() => {
+        this.search = ''
+        this.loadingBtnSearch = false;
+      })
+      
     },
-    async actionFavorite() {
+    actionFavorite() {
+      this.loadingBtnFavorite = true;
       const params = {
         github_id: this.repository.id,
         name: this.repository.full_name,
@@ -84,7 +92,7 @@ export default {
         language: this.repository.language
       }
 
-      await axios.post('/repositories', params).then(() => {
+      axios.post('/repositories', params).then(() => {
         this.repository = {}
         this.displayCard = false;
         this.success = true;
@@ -93,8 +101,9 @@ export default {
         if(err.response?.data?.error)
           this.errorMessage = err.response.data.message
         this.error = true;
-      });
-      
+      }).finally(() => {
+        this.loadingBtnFavorite = false;
+      })
     },
   }
 }
