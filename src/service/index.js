@@ -1,5 +1,5 @@
 import axios from 'axios';
-axios.defaults.baseURL = 'http://localhost:9001/api/v1';
+axios.defaults.baseURL = process.env.VUE_APP_URL_API;
 
 axios.interceptors.request.use(
   async config => {
