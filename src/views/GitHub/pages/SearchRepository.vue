@@ -68,7 +68,7 @@ export default {
   methods: {
     async actionSearch() {
       const res = await axios.post('/github/get-repository-by-name', { name: this.search });
-      this.repository = res.data[0];
+      this.repository = res.data;
       this.displayCard = true;
       this.success = false;
       this.error = false;
