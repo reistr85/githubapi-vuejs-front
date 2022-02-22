@@ -66,6 +66,7 @@ export default {
       if(this.search === '') {
         this.errorMessage = 'Digite o nome do repositório';
         this.error = true;
+        return;
       }
       this.loadingBtnSearch = true;
       axios.post('/github/get-repository-by-name', { name: this.search }).then((res) => {
